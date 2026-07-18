@@ -1,6 +1,14 @@
 const express = require("express");
 const app = express();
-app.use(express.json()); // Parse JSON bodies
+const logger = require("./middlewares/logger.middleware");
+const {
+  validatePost,
+  validatePatch,
+} = require("./middlewares/validatePost.middleware");
+const globalErrorHandler = require("./middlewares/globalError.middleware");
+
+app.use(express.json());
+app.use(logger);
 
 let todos = [
   { id: 1, task: "Learn Node.js", completed: false },
@@ -8,8 +16,13 @@ let todos = [
 ];
 
 // GET All – Read
-app.get("/todos", (req, res) => {
-  res.status(200).json(todos); // Send array as JSON
+app.get("/todos", (req, res, next) => {
+  try {
+    //throw new Error("Simulated error for testing global error handler");
+    res.status(200).json(todos);
+  } catch (err) {
+    next(err);
+  }
 });
 
 //Get One – Read
@@ -20,30 +33,24 @@ app.get("/todos/:id", (req, res) => {
 });
 
 // POST New – Create
-app.post("/todos", (req, res) => {
+app.post("/todos", validatePost, (req, res, next) => {
   const { task, completed } = req.body;
-  if (!task) {
-    return res.status(400).json({ message: " Task field is required" });
-  }
-  if (completed === undefined) {
-    return res.status(400).json({ message: "completed field is required" });
-  }
-  if (typeof completed !== "boolean") {
-    return res.status(400).json({ message: "completed must be a boolean" });
-  }
+  try {
+    const newTodo = {
+      id: todos.length + 1,
+      task,
+      completed: completed !== undefined ? completed : false,
+    };
 
-  const newTodo = {
-    id: todos.length + 1,
-    task,
-    completed,
-  };
-
-  todos.push(newTodo);
-  res.status(201).json(newTodo); // Echo back
+    todos.push(newTodo);
+    res.status(201).json(newTodo);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // PATCH Update – Partial
-app.patch("/todos/:id", (req, res) => {
+app.patch("/todos/:id", validatePatch, (req, res) => {
   const todo = todos.find((t) => t.id === parseInt(req.params.id)); // Array.find()
   if (!todo) return res.status(404).json({ message: "Todo not found" });
   Object.assign(todo, req.body); // Merge: e.g., {completed: true}
@@ -65,15 +72,14 @@ app.get("/todos/completed", (req, res) => {
   res.status(200).json(completed); // Custom Read!
 });
 
-app.get("/Api/todos/active", (req, res) => { //Added Api to the route to avoid conflict with the /todos/:id route
- 
+app.get("/Api/todos/active", (req, res) => {
+  //Added Api to the route to avoid conflict with the /todos/:id route
+
   const active = todos.filter((t) => !t.completed);
   res.status(200).json(active); // Custom Read!
 });
 
-app.use((err, req, res, next) => {
-  res.status(500).json({ error: "Server error!" });
-});
+app.use(globalErrorHandler);
 
 const PORT = 3002;
 app.listen(PORT, () => console.log(`Server on port ${PORT}`));
