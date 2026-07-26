@@ -85,7 +85,7 @@ app.patch("/todos/:id", validatePatch, async (req, res, next) => {
 
 // DELETE Remove
 app.delete("/todos/:id", validateId, async (req, res, next) => {
-  const id = parseInt(req.params.id);
+  const { id } = req.params;
   try {
     const deletedTodo = await todoModel.findByIdAndDelete(req.params.id);
 
@@ -97,9 +97,7 @@ app.delete("/todos/:id", validateId, async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-  ccess;
 });
-
 
 app.use(globalErrorHandler);
 
