@@ -100,10 +100,6 @@ app.delete("/todos/:id", validateId, async (req, res, next) => {
   ccess;
 });
 
-app.get("/todos/completed", (req, res) => {
-  const completed = todos.filter((t) => t.completed);
-  res.status(200).json(completed); // Custom Read!
-});
 
 app.use(globalErrorHandler);
 
